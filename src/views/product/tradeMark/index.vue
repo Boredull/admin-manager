@@ -81,24 +81,25 @@
 
      -->
     <el-dialog title="添加品牌" :visible.sync="dialogFormVisible">
-      <!-- form 表单 -->
-      <el-form style="width: 80%">
+      <!-- form 表单 :model属性，这个属性的作用是，把表单的数据收集到那个对象的身上，将来表单验证，也需要这个属性-->
+      <el-form style="width: 80%" :model="tmForm">
         <el-form-item label="品牌名称" label-width="100px">
-          <el-input autocomplete="off"></el-input>
+          <el-input autocomplete="off" v-model="tmForm.tmName"></el-input>
         </el-form-item>
         <el-form-item label="品牌LOGO" label-width="100px">
-          <!-- 
-            
-
+          <!-- 这里收集数据：不能使用v-model,因为不是表单元素
+          action:设置图片上传的地址
+          :on-success:可以检测到图片上传成功，当图片上传成功，会执行一次
+          :before-upload：可以在上传图片之前，会执行一次
              -->
           <el-upload
             class="avatar-uploader"
-            action="https://jsonplaceholder.typicode.com/posts/"
+            action="/dev-api/admin/product/fileUpload"
             :show-file-list="false"
             :on-success="handleAvatarSuccess"
             :before-upload="beforeAvatarUpload"
           >
-            <img v-if="imageUrl" :src="imageUrl" class="avatar" />
+            <img v-if="tmForm.logoUrl" :src="tmForm.logoUrl" class="avatar" />
             <i v-else class="el-icon-plus avatar-uploader-icon"></i>
             <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
           </el-upload>
@@ -106,7 +107,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogFormVisible = false"
+        <el-button type="primary" @click="addOrUpdateTradeMark"
           >确 定</el-button
         >
       </div>
@@ -129,8 +130,11 @@ export default {
       list: [],
       // 对话框显示与隐藏控制的属性
       dialogFormVisible: false,
-      // 上传图片使用的属性
-      imageUrl:''
+      // 收集品牌信息:对象身上的属性，不能瞎写，需要看文档的
+      tmForm:{
+        tmName:'',
+        logoUrl:''
+      }
     };
   },
   // 组件挂载完毕发请求
@@ -168,16 +172,24 @@ export default {
     showDialog() {
       // 显示对话框
       this.dialogFormVisible = true;
+      // 清除数据
+      this.tmForm = {tmName:'',logoUrl:''}
     },
     // 修改某一个品牌
     updateTradeMark() {
       // 显示对话框
       this.dialogFormVisible = true;
+
     },
-    // 上传图片相关的回调
+    // 图片上传成功
      handleAvatarSuccess(res, file) {
-        this.imageUrl = URL.createObjectURL(file.raw);
+      
+      // res：上传成功之后返回前端数据
+      // file :上传成功之后服务器返回前端数据
+      // 收集品牌图片数据，因为将来需要带给服务器
+        this.tmForm.logoUrl = res.data
       },
+      // 图片上传之前
       beforeAvatarUpload(file) {
         const isJPG = file.type === 'image/jpeg';
         const isLt2M = file.size / 1024 / 1024 < 2;
@@ -189,6 +201,19 @@ export default {
           this.$message.error('上传头像图片大小不能超过 2MB!');
         }
         return isJPG && isLt2M;
+      },
+      // 添加按钮（添加品牌|修改品牌）
+     async addOrUpdateTradeMark() {
+        this.dialogFormVisible = false
+        // 发请求(添加品牌|修改品牌)
+        let result = await this.$API.trademark.reqAddOrUpdateTradeMark(this.tmForm);
+        
+        if(result.code == 200) {
+          // 弹出信息：添加品牌成功、修改品牌成功
+          this.$message(this.tmForm.id?'修改品牌成功':'添加品牌成功')
+          // 添加或修改品牌成功以后，需要再次获取品牌列表进行展示
+          this.getPageList();
+        }
       }
     }
   
