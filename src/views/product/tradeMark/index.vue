@@ -44,7 +44,11 @@
             @click="updateTradeMark(row)"
             >修改</el-button
           >
-          <el-button type="danger" icon="el-icon-delete" size="mini"
+          <el-button
+            type="danger"
+            icon="el-icon-delete"
+            size="mini"
+            @click="deleteTradeMark(row)"
             >删除</el-button
           >
         </template>
@@ -126,13 +130,13 @@ export default {
   data() {
     // 自定义校验规则
     var validateTmName = (rule, value, callback) => {
-        // 自定义校验规则
-        if(value.length<2||value.length>10){
-          callback(new Error('品牌名称2-10位'))
-        }else{
-          callback();
-        }
-      };
+      // 自定义校验规则
+      if (value.length < 2 || value.length > 10) {
+        callback(new Error("品牌名称2-10位"));
+      } else {
+        callback();
+      }
+    };
     return {
       // 代表的分页器第几页
       page: 1,
@@ -163,7 +167,7 @@ export default {
           //   trigger: "change",
           // },
           // 自定义校验规则
-          { validator:validateTmName, trigger:'change' }
+          { validator: validateTmName, trigger: "change" },
         ],
         // 品牌的logo验证规则
         logoUrl: [{ required: true, message: "请选择品牌的图片" }],
@@ -240,7 +244,7 @@ export default {
       return isJPG && isLt2M;
     },
     // 添加按钮（添加品牌|修改品牌）
-     addOrUpdateTradeMark() {
+    addOrUpdateTradeMark() {
       // 当全部验证字段通过，再去书写业务逻辑
       this.$refs.ruleForm.validate(async (success) => {
         // 如果全部字段符合条件
@@ -262,10 +266,38 @@ export default {
             this.getPageList(this.tmForm.id ? this.page : 1);
           }
         } else {
-          console.log('error submit!!');
+          console.log("error submit!!");
           return false;
         }
       });
+    },
+    // 删除品牌的操作
+    deleteTradeMark(row) {
+      this.$confirm(`你确定删除${row.tmName}`, "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(async () => {
+          // 当用户点击确定按钮的时候会触发
+          // 向服务器发请求
+        let result = await this.$API.trademark.reqDeleteTradeMark(row.id)
+        if(result.code == 200){
+          this.$message({
+            type: "success",
+            message: "删除成功!",
+          });
+          // 再次获取品牌列表数据
+          this.getPageList(this.list.length>1?this.page:this.page-1);
+        }
+        })
+        .catch(() => {
+          // 当用户点击取消按钮的时候会触发
+          this.$message({
+            type: "info",
+            message: "已取消删除",
+          });
+        });
     },
   },
 };

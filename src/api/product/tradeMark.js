@@ -33,3 +33,7 @@ export const reqAddOrUpdateTradeMark = (tradeMark) => {
     });
   }
 };
+
+// 删除品牌
+// admin/product/baseTradeMark/remove/{id} delete
+export const reqDeleteTradeMark = (id) => request({url:`/admin/product/baseTradeMark/remove/${id}`,method:'delete'})
