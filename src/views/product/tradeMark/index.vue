@@ -41,7 +41,7 @@
             type="warning"
             icon="el-icon-edit"
             size="mini"
-            @click="updateTradeMark"
+            @click="updateTradeMark(row)"
             >修改</el-button
           >
           <el-button type="danger" icon="el-icon-delete" size="mini"
@@ -80,7 +80,7 @@
       :visible.sync：控制对话框显示与隐藏用到
 
      -->
-    <el-dialog title="添加品牌" :visible.sync="dialogFormVisible">
+    <el-dialog :title="tmForm.id?'修改品牌':'添加品牌'" :visible.sync="dialogFormVisible">
       <!-- form 表单 :model属性，这个属性的作用是，把表单的数据收集到那个对象的身上，将来表单验证，也需要这个属性-->
       <el-form style="width: 80%" :model="tmForm">
         <el-form-item label="品牌名称" label-width="100px">
@@ -176,9 +176,15 @@ export default {
       this.tmForm = {tmName:'',logoUrl:''}
     },
     // 修改某一个品牌
-    updateTradeMark() {
+    updateTradeMark(row) {
+      // row:当前用户选中的品牌信息
+
       // 显示对话框
       this.dialogFormVisible = true;
+      // 将已有的品牌信息赋值给tmForm进行展示
+      // 将服务器返回的品牌的信息，直接赋值给了tmForm 进行展示
+      // 也就是tmForm存储即为服务器返回的品牌信息
+      this.tmForm = {...row}
 
     },
     // 图片上传成功
@@ -210,9 +216,13 @@ export default {
         
         if(result.code == 200) {
           // 弹出信息：添加品牌成功、修改品牌成功
-          this.$message(this.tmForm.id?'修改品牌成功':'添加品牌成功')
+          this.$message({
+            type:'success',
+            message:this.tmForm.id?'修改品牌成功':'添加品牌成功'
+          })
           // 添加或修改品牌成功以后，需要再次获取品牌列表进行展示
-          this.getPageList();
+          // 如果添加品牌：停留在第一页，修改品牌应该留在当前页
+          this.getPageList(this.tmForm.id?this.page:1);
         }
       }
     }
