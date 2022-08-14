@@ -78,15 +78,18 @@
     <!-- 
       对话框
       :visible.sync：控制对话框显示与隐藏用到
-
+      Form 组件提供了表单验证的功能，只需要通过rules属性传入约定的验证规则，并将Form-Item的prop属性设置为需校验的字段名即可
      -->
-    <el-dialog :title="tmForm.id?'修改品牌':'添加品牌'" :visible.sync="dialogFormVisible">
+    <el-dialog
+      :title="tmForm.id ? '修改品牌' : '添加品牌'"
+      :visible.sync="dialogFormVisible"
+    >
       <!-- form 表单 :model属性，这个属性的作用是，把表单的数据收集到那个对象的身上，将来表单验证，也需要这个属性-->
-      <el-form style="width: 80%" :model="tmForm">
-        <el-form-item label="品牌名称" label-width="100px">
+      <el-form style="width: 80%" :model="tmForm" :rules="rules" ref="ruleForm">
+        <el-form-item label="品牌名称" label-width="100px" prop="tmName">
           <el-input autocomplete="off" v-model="tmForm.tmName"></el-input>
         </el-form-item>
-        <el-form-item label="品牌LOGO" label-width="100px">
+        <el-form-item label="品牌LOGO" label-width="100px" prop="logoUrl">
           <!-- 这里收集数据：不能使用v-model,因为不是表单元素
           action:设置图片上传的地址
           :on-success:可以检测到图片上传成功，当图片上传成功，会执行一次
@@ -101,7 +104,9 @@
           >
             <img v-if="tmForm.logoUrl" :src="tmForm.logoUrl" class="avatar" />
             <i v-else class="el-icon-plus avatar-uploader-icon"></i>
-            <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
+            <div slot="tip" class="el-upload__tip">
+              只能上传jpg/png文件，且不超过500kb
+            </div>
           </el-upload>
         </el-form-item>
       </el-form>
@@ -119,6 +124,15 @@
 export default {
   name: "tradeMark",
   data() {
+    // 自定义校验规则
+    var validateTmName = (rule, value, callback) => {
+        // 自定义校验规则
+        if(value.length<2||value.length>10){
+          callback(new Error('品牌名称2-10位'))
+        }else{
+          callback();
+        }
+      };
     return {
       // 代表的分页器第几页
       page: 1,
@@ -131,10 +145,29 @@ export default {
       // 对话框显示与隐藏控制的属性
       dialogFormVisible: false,
       // 收集品牌信息:对象身上的属性，不能瞎写，需要看文档的
-      tmForm:{
-        tmName:'',
-        logoUrl:''
-      }
+      tmForm: {
+        tmName: "",
+        logoUrl: "",
+      },
+      // 表单验证规则
+      rules: {
+        // 品牌名称的验证规则
+        // required:必须要校验字段（前面五角星有关系） message 提示信息  trigger：用户行为设置（事件的设置:blur失焦、change:文本发生变化）
+        tmName: [
+          { required: true, message: "请输入品牌名称", trigger: "blur" },
+          // 品牌名称长度2-10
+          // {
+          //   min: 2,
+          //   max: 10,
+          //   message: "长度在 2 到 10 个字符",
+          //   trigger: "change",
+          // },
+          // 自定义校验规则
+          { validator:validateTmName, trigger:'change' }
+        ],
+        // 品牌的logo验证规则
+        logoUrl: [{ required: true, message: "请选择品牌的图片" }],
+      },
     };
   },
   // 组件挂载完毕发请求
@@ -173,7 +206,7 @@ export default {
       // 显示对话框
       this.dialogFormVisible = true;
       // 清除数据
-      this.tmForm = {tmName:'',logoUrl:''}
+      this.tmForm = { tmName: "", logoUrl: "" };
     },
     // 修改某一个品牌
     updateTradeMark(row) {
@@ -184,49 +217,57 @@ export default {
       // 将已有的品牌信息赋值给tmForm进行展示
       // 将服务器返回的品牌的信息，直接赋值给了tmForm 进行展示
       // 也就是tmForm存储即为服务器返回的品牌信息
-      this.tmForm = {...row}
-
+      this.tmForm = { ...row };
     },
     // 图片上传成功
-     handleAvatarSuccess(res, file) {
-      
+    handleAvatarSuccess(res, file) {
       // res：上传成功之后返回前端数据
       // file :上传成功之后服务器返回前端数据
       // 收集品牌图片数据，因为将来需要带给服务器
-        this.tmForm.logoUrl = res.data
-      },
-      // 图片上传之前
-      beforeAvatarUpload(file) {
-        const isJPG = file.type === 'image/jpeg';
-        const isLt2M = file.size / 1024 / 1024 < 2;
+      this.tmForm.logoUrl = res.data;
+    },
+    // 图片上传之前
+    beforeAvatarUpload(file) {
+      const isJPG = file.type === "image/jpeg";
+      const isLt2M = file.size / 1024 / 1024 < 2;
 
-        if (!isJPG) {
-          this.$message.error('上传头像图片只能是 JPG 格式!');
-        }
-        if (!isLt2M) {
-          this.$message.error('上传头像图片大小不能超过 2MB!');
-        }
-        return isJPG && isLt2M;
-      },
-      // 添加按钮（添加品牌|修改品牌）
-     async addOrUpdateTradeMark() {
-        this.dialogFormVisible = false
-        // 发请求(添加品牌|修改品牌)
-        let result = await this.$API.trademark.reqAddOrUpdateTradeMark(this.tmForm);
-        
-        if(result.code == 200) {
-          // 弹出信息：添加品牌成功、修改品牌成功
-          this.$message({
-            type:'success',
-            message:this.tmForm.id?'修改品牌成功':'添加品牌成功'
-          })
-          // 添加或修改品牌成功以后，需要再次获取品牌列表进行展示
-          // 如果添加品牌：停留在第一页，修改品牌应该留在当前页
-          this.getPageList(this.tmForm.id?this.page:1);
-        }
+      if (!isJPG) {
+        this.$message.error("上传头像图片只能是 JPG 格式!");
       }
-    }
-  
+      if (!isLt2M) {
+        this.$message.error("上传头像图片大小不能超过 2MB!");
+      }
+      return isJPG && isLt2M;
+    },
+    // 添加按钮（添加品牌|修改品牌）
+     addOrUpdateTradeMark() {
+      // 当全部验证字段通过，再去书写业务逻辑
+      this.$refs.ruleForm.validate(async (success) => {
+        // 如果全部字段符合条件
+        if (success) {
+          this.dialogFormVisible = false;
+          // 发请求(添加品牌|修改品牌)
+          let result = await this.$API.trademark.reqAddOrUpdateTradeMark(
+            this.tmForm
+          );
+
+          if (result.code == 200) {
+            // 弹出信息：添加品牌成功、修改品牌成功
+            this.$message({
+              type: "success",
+              message: this.tmForm.id ? "修改品牌成功" : "添加品牌成功",
+            });
+            // 添加或修改品牌成功以后，需要再次获取品牌列表进行展示
+            // 如果添加品牌：停留在第一页，修改品牌应该留在当前页
+            this.getPageList(this.tmForm.id ? this.page : 1);
+          }
+        } else {
+          console.log('error submit!!');
+          return false;
+        }
+      });
+    },
+  },
 };
 </script>
 
@@ -255,3 +296,4 @@ export default {
   display: block;
 }
 </style>
+
